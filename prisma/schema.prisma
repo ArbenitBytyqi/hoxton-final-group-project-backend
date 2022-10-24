@@ -1,13 +1,10 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./data.db"
 }
 
 model User {
@@ -17,7 +14,7 @@ model User {
   email    String   @unique
   password String
   role     Boolean? @default(false)
-  reviews   Review[]
+  reviews  Review[]
 }
 
 model Book {
@@ -31,7 +28,7 @@ model Book {
   price         String
   stock         Int
   discountPrice String?
-  reviews        Review[]
+  reviews       Review[]
 }
 
 model Review {
