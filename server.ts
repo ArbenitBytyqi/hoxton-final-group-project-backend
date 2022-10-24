@@ -39,6 +39,47 @@ app.get('/reviews/:id', async (req, res) => {
     }
 })
 
+app.post('/reviews', async (req, res) => {
+    await prisma.review.create({
+        data: req.body,
+        include: {
+            book: true,
+            user: true
+        }
+    })
+    const allReviews = await prisma.review.findMany({
+        include: {
+            book: true,
+            user: true
+        }
+    })
+    res.send(allReviews)
+})
+
+app.patch('/reviews/:id', async (req, res) => {
+    const updatedReview = await prisma.review.update({
+        data: req.body,
+        where: { id: Number(req.params.id) },
+        include: {
+            book: true,
+            user: true
+        }
+    })
+    res.send(updatedReview)
+})
+
+app.delete('/reviews/:id', async (req, res) => {
+    await prisma.review.delete({
+        where: { id: Number(req.params.id) }
+    })
+    const allReviews = await prisma.review.findMany({
+        include: {
+            book: true,
+            user: true
+        }
+    })
+    res.send(allReviews)
+})
 
 
 app.listen(port, () => {
