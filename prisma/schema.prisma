@@ -27,7 +27,8 @@ model Book {
   stock         Int
   discountPrice String?
   reviews       Review[]
-  authors        Author[]
+  author        Author?   @relation(fields: [authorId], references: [id])
+  authorId      Int?
   category      Category? @relation(fields: [categoryId], references: [id])
   categoryId    Int?
 }
@@ -39,10 +40,10 @@ model Category {
 }
 
 model Author {
-  id    Int    @id @default(autoincrement())
-  fullname  String @unique
-  image String
-  books Book[]
+  id       Int    @id @default(autoincrement())
+  fullname String @unique
+  image    String
+  books    Book[]
 }
 
 model Review {
