@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Author, PrismaClient } from "@prisma/client";
 import cors from "cors";
 import express from "express";
 
@@ -13,21 +13,35 @@ app.use(cors());
 app.use(express.json());
 
 
-
 // post a new book
 app.post("/books", async (req, res) => {
     const newBoook = {
-        title: req.body.title,
-        description: req.body.description,
-        image: req.body.image,
-        publishedYear: req.body.publishedYear,
-        author: req.body.author,
-        category: req.body.category,
-        price: req.body.price,
-        stock: req.body.stock,
-        discountPrice: req.body.discountPrice
+        title: req.body.book.title,
+        description: req.body.book.description,
+        image: req.body.book.image,
+        publishedYear: req.body.book.publishedYear,
+        category: req.body.book.category,
+        price: req.body.book.price,
+        stock: req.body.book.stock,
+        discountPrice: req.body.book.discountPrice
     }
-    const book = await prisma.book.create({ data: newBoook })
+    const authors = req.body.authors.map((author: Author) => ({
+        image: author.image,
+        fullname: author.fullname,
+    }))
+    const book = await prisma.book.create({
+        data: {
+            ...newBoook,
+            authors: {
+                connectOrCreate: {
+                    where: req.body.authors.map((authorName: string) => ({
+                        fullname: authorName,
+                    })),
+                    create: authors
+                },
+            }
+        },
+    })
     res.send(book)
 })
 
@@ -53,7 +67,6 @@ app.get("/books", async (req, res) => {
         //@ts-ignore
         res.status(400).send({ error: error.message })
     }
-
 })
 
 // updated an existing book
@@ -80,8 +93,6 @@ app.patch("/books/:id", async (req, res) => {
         //@ts-ignore
         res.status(400).send({ error: error.message })
     }
-
-
 })
 
 // delete an existing book
@@ -111,6 +122,79 @@ app.delete("/books/:id", async (req, res) => {
 
 })
 
+//get an author and all his books with all reviews with users
+app.get("/author/:fullname", async (req, res) => {
+    try {
+        const author = await prisma.author.findUnique({
+            where: {
+                fullname: req.params.fullname
+            },
+            include: {
+                books: {
+                    include: {
+                        reviews: {
+                            include: {
+                                user: {
+                                    select: {
+                                        fullname: true,
+                                        image: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        if (author) res.send(author)
+        else res.status(400).send({ error: `We could not find the author with naame ${req.params.fullname}. Try again` })
+    } catch (error) {
+        //@ts-ignore
+        res.status(400).send({ error: error.message })
+    }
+})
+
+app.post("/author",async(req,res)=>{
+    try{
+        const authorData={
+            fullname:req.body.fullname,
+            image:req.body.image
+        }
+        const findAuthor= await prisma.author.findUnique({where:{fullname:authorData.fullname}})
+        if(!findAuthor){
+            const newAuthor= await prisma.author.create({data:authorData})
+        res.send(newAuthor)
+        }
+        else res.status(400).send({error:`Author with this${authorData.fullname} already exists.`})   
+    }catch (error) {
+        //@ts-ignore
+        res.status(400).send({ error: error.message })
+    }
+})
+
+app.delete("/author/:id", async(req,res)=>{
+    try {
+        const id = Number(req.params.id)
+        const findAuthor = await prisma.author.findUnique({
+            where: {
+                id
+            }
+        })
+        if (findAuthor) {
+            const author = await prisma.author.delete({
+                where: {
+                    id: id
+                }
+            })
+            res.send(author)
+        } else {
+            res.status(400).send({ error: `No author found with id ${id} ` })
+        }
+    } catch (error) {
+        //@ts-ignore
+        res.status(400).send({ error: error.message })
+    }
+})
 
 //reviews
 app.get('/reviews', async (req, res) => {
