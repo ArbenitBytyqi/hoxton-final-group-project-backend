@@ -1,6 +1,10 @@
 import { Author, PrismaClient } from "@prisma/client";
 import cors from "cors";
 import express from "express";
+import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { generateToken, SECRET,hash  } from "./auth";
 
 const prisma = new PrismaClient({
     log: ["error", "info", "query", "warn"]
@@ -12,6 +16,34 @@ const port = 6677;
 app.use(cors());
 app.use(express.json());
 
+dotenv.config();
+
+async function getCurrentUser(token: string) {
+    const decodedData = jwt.verify(token, SECRET);
+    const user = await prisma.user.findUnique({ 
+        where: { 
+            // @ts-ignore
+            id: decodedData.id
+        },
+        include:{reviews:{
+            select:{
+                comment:true,
+                stars:true,
+                book:{
+                    select:{
+                        title:true,
+                        image:true}
+                    }
+                }
+            }
+        }
+
+    },)
+    if (! user) 
+        return null;
+    
+    return user;
+}
 
 // post a new book
 app.post("/books", async (req, res) => {
@@ -301,7 +333,132 @@ app.get('/categories/:id', async (req, res) => {
     }
 })
 
+app.post("/sign-up", async (req, res) => {
+    try {
+        const userData={
+            fullname:req.body.fullname,
+            image: req.body.image,   
+            email:  req.body.email,  
+            password: bcrypt.hashSync(req.body.password),
+            role:  req.body.role,   
+        }
+
+        const findUser = await prisma.user.findUnique({where: {
+                email:userData.email
+            }});
+
+        const errors: string[] = [];
+
+        if (typeof userData.fullname !== "string") {
+            errors.push("Fullname not provided or not a string");
+        }
+
+        if (typeof userData.image !== "string") {
+            errors.push("Image not provided or not a string");
+        }
+
+        if (typeof userData.email !== "string") {
+            errors.push("Email not provided or not a string");
+        }
+
+        if (typeof userData.role !== "boolean") {
+            errors.push("Role not provided or not a boolean");
+        }
+        if (typeof userData.password !== "string") {
+            errors.push("Password not provided or not a string");
+        }
+
+
+        if (errors.length > 0) {
+            res.status(400).send({errors});
+            return
+        }
+
+        if (findUser) 
+            res.send({message: "This account already exists"})
+         else {
+            const user = await prisma.user.create({
+                data: userData
+            });
+            const token = generateToken(user.id);
+            res.send({user, token});
+        }
+
+
+    } catch (error) { // @ts-ignore
+        res.status(400).send({errors: error.message});
+    }
+})
+
+app.post("/sign-in", async (req, res) => {
+    try {
+        const userData={
+            email:req.body.email,
+            password:req.body.password
+        }
+
+        const errors: string[] = [];
+
+        if (typeof userData.email !== "string") {
+            errors.push("Email not provided or not a string");
+        }
+        if (typeof userData.password !== "string") {
+            errors.push("Password not provided or not a string");
+        }
+
+        if (errors.length > 0) {
+            res.status(400).send({errors});
+            return;
+        }
+
+        const user = await prisma.user.findUnique({
+            where: {
+                email:userData.email
+            },
+            include:{reviews:{
+                select:{
+                    comment:true,
+                    stars:true,
+                    book:{
+                        select:{
+                            title:true,
+                            image:true}
+                        }
+                    }
+                }
+            }
+        },);
+        if (user && bcrypt.compareSync(userData.password, user.password)) {
+            const token = generateToken(user.id);
+            res.send({user, token});
+        } else {
+            res.status(400).send({errors: ["Wrong email or password. Try again"]});
+        }
+    } catch (error) { 
+        // @ts-ignore
+        res.status(400).send({ errors: error.message
+        });
+    }
+})
+
+
+
+app.get("/validate", async (req, res) => {
+    try {
+        if (req.headers.authorization) {
+            const user = await getCurrentUser(req.headers.authorization);
+            // @ts-ignore
+            res.send({user, token: getToken(user.id)
+            });
+        }
+    } catch (error) { 
+        // @ts-ignore
+        res.status(400).send({error: error.message});
+    }
+});
 
 app.listen(port, () => {
     console.log(`Serveri is running on: http://localhost:${port}`);
 })
+
+
