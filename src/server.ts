@@ -64,7 +64,7 @@ app.post("/books", async (req, res) => {
     const book = await prisma.book.create({
         data: {
             ...newBoook,
-            author: {
+            authors: {
                 connectOrCreate: {
                     where: req.body.authors.map((authorName: string) => ({
                         fullname: authorName,
