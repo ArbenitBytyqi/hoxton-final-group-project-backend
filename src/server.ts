@@ -32,7 +32,7 @@ app.post("/books", async (req, res) => {
     const book = await prisma.book.create({
         data: {
             ...newBoook,
-            authors: {
+            author: {
                 connectOrCreate: {
                     where: req.body.authors.map((authorName: string) => ({
                         fullname: authorName,
@@ -154,25 +154,25 @@ app.get("/author/:fullname", async (req, res) => {
     }
 })
 
-app.post("/author",async(req,res)=>{
-    try{
-        const authorData={
-            fullname:req.body.fullname,
-            image:req.body.image
+app.post("/author", async (req, res) => {
+    try {
+        const authorData = {
+            fullname: req.body.fullname,
+            image: req.body.image
         }
-        const findAuthor= await prisma.author.findUnique({where:{fullname:authorData.fullname}})
-        if(!findAuthor){
-            const newAuthor= await prisma.author.create({data:authorData})
-        res.send(newAuthor)
+        const findAuthor = await prisma.author.findUnique({ where: { fullname: authorData.fullname } })
+        if (!findAuthor) {
+            const newAuthor = await prisma.author.create({ data: authorData })
+            res.send(newAuthor)
         }
-        else res.status(400).send({error:`Author with this${authorData.fullname} already exists.`})   
-    }catch (error) {
+        else res.status(400).send({ error: `Author with this${authorData.fullname} already exists.` })
+    } catch (error) {
         //@ts-ignore
         res.status(400).send({ error: error.message })
     }
 })
 
-app.delete("/author/:id", async(req,res)=>{
+app.delete("/author/:id", async (req, res) => {
     try {
         const id = Number(req.params.id)
         const findAuthor = await prisma.author.findUnique({
