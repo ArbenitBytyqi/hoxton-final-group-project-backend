@@ -29,7 +29,7 @@ model Book {
   reviews       Review[]
   author        Author?   @relation(fields: [authorId], references: [id])
   authorId      Int?
-  Category      Category? @relation(fields: [categoryId], references: [id])
+  category      Category? @relation(fields: [categoryId], references: [id])
   categoryId    Int?
 }
 

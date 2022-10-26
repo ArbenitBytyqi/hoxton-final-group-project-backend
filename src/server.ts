@@ -179,6 +179,45 @@ app.delete('/reviews/:id', async (req, res) => {
     res.send(allReviews)
 })
 
+
+
+//Categories
+
+
+app.get('/categories', async (req, res) => {
+    try {
+        const getCategories = await prisma.category.findMany({
+            include: {
+                book: true
+            }
+        })
+        res.send(getCategories)
+    } catch (error) {
+        //@ts-ignore
+        res.status(400).send({ error: error.message })
+    }
+})
+
+app.get('/categories/:id', async (req, res) => {
+    try {
+        const getCategoriesById = await prisma.category.findUnique({
+            where: { id: Number(req.params.id) },
+            include: {
+                book: true
+            }
+        })
+        if (getCategoriesById) {
+            res.send(getCategoriesById)
+        } else {
+            res.status(400).send({ error: "Category not found" })
+        }
+    } catch (error) {
+        //@ts-ignore
+        res.status(400).send({ error: error.message })
+    }
+})
+
+
 app.listen(port, () => {
     console.log(`Serveri is running on: http://localhost:${port}`);
 })
