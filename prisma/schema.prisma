@@ -23,12 +23,20 @@ model Book {
   description   String
   image         String
   publishedYear String
-  author        String
   category      String
   price         String
   stock         Int
   discountPrice String?
   reviews       Review[]
+  author        Author?  @relation(fields: [authorId], references: [id])
+  authorId      Int?
+}
+
+model Author {
+  id    Int    @id @default(autoincrement())
+  name  String
+  image String
+  book  Book[]
 }
 
 model Review {
