@@ -4,7 +4,7 @@ import express from "express";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { generateToken, SECRET,hash  } from "./auth";
+import { generateToken, SECRET, hash, getToken } from "./auth";
 
 const prisma = new PrismaClient({
     log: ["error", "info", "query", "warn"]
@@ -20,28 +20,30 @@ dotenv.config();
 
 async function getCurrentUser(token: string) {
     const decodedData = jwt.verify(token, SECRET);
-    const user = await prisma.user.findUnique({ 
-        where: { 
+    const user = await prisma.user.findUnique({
+        where: {
             // @ts-ignore
             id: decodedData.id
         },
-        include:{reviews:{
-            select:{
-                comment:true,
-                stars:true,
-                book:{
-                    select:{
-                        title:true,
-                        image:true}
+        include: {
+            reviews: {
+                select: {
+                    comment: true,
+                    stars: true,
+                    book: {
+                        select: {
+                            title: true,
+                            image: true
+                        }
                     }
                 }
             }
         }
 
     },)
-    if (! user) 
+    if (!user)
         return null;
-    
+
     return user;
 }
 
@@ -64,7 +66,7 @@ app.post("/books", async (req, res) => {
     const book = await prisma.book.create({
         data: {
             ...newBoook,
-            authors: {
+            author: {
                 connectOrCreate: {
                     where: req.body.authors.map((authorName: string) => ({
                         fullname: authorName,
@@ -335,17 +337,19 @@ app.get('/categories/:id', async (req, res) => {
 
 app.post("/sign-up", async (req, res) => {
     try {
-        const userData={
-            fullname:req.body.fullname,
-            image: req.body.image,   
-            email:  req.body.email,  
+        const userData = {
+            fullname: req.body.fullname,
+            image: req.body.image,
+            email: req.body.email,
             password: bcrypt.hashSync(req.body.password),
-            role:  req.body.role,   
+            role: req.body.role,
         }
 
-        const findUser = await prisma.user.findUnique({where: {
-                email:userData.email
-            }});
+        const findUser = await prisma.user.findUnique({
+            where: {
+                email: userData.email
+            }
+        });
 
         const errors: string[] = [];
 
@@ -370,31 +374,31 @@ app.post("/sign-up", async (req, res) => {
 
 
         if (errors.length > 0) {
-            res.status(400).send({errors});
+            res.status(400).send({ errors });
             return
         }
 
-        if (findUser) 
-            res.send({message: "This account already exists"})
-         else {
+        if (findUser)
+            res.send({ message: "This account already exists" })
+        else {
             const user = await prisma.user.create({
                 data: userData
             });
             const token = generateToken(user.id);
-            res.send({user, token});
+            res.send({ user, token });
         }
 
 
     } catch (error) { // @ts-ignore
-        res.status(400).send({errors: error.message});
+        res.status(400).send({ errors: error.message });
     }
 })
 
 app.post("/sign-in", async (req, res) => {
     try {
-        const userData={
-            email:req.body.email,
-            password:req.body.password
+        const userData = {
+            email: req.body.email,
+            password: req.body.password
         }
 
         const errors: string[] = [];
@@ -407,22 +411,24 @@ app.post("/sign-in", async (req, res) => {
         }
 
         if (errors.length > 0) {
-            res.status(400).send({errors});
+            res.status(400).send({ errors });
             return;
         }
 
         const user = await prisma.user.findUnique({
             where: {
-                email:userData.email
+                email: userData.email
             },
-            include:{reviews:{
-                select:{
-                    comment:true,
-                    stars:true,
-                    book:{
-                        select:{
-                            title:true,
-                            image:true}
+            include: {
+                reviews: {
+                    select: {
+                        comment: true,
+                        stars: true,
+                        book: {
+                            select: {
+                                title: true,
+                                image: true
+                            }
                         }
                     }
                 }
@@ -430,14 +436,13 @@ app.post("/sign-in", async (req, res) => {
         },);
         if (user && bcrypt.compareSync(userData.password, user.password)) {
             const token = generateToken(user.id);
-            res.send({user, token});
+            res.send({ user, token });
         } else {
-            res.status(400).send({errors: ["Wrong email or password. Try again"]});
+            res.status(400).send({ errors: ["Wrong email or password. Try again"] });
         }
-    } catch (error) { 
+    } catch (error) {
         // @ts-ignore
-        res.status(400).send({ errors: error.message
-        });
+        res.status(400).send({ errors: error.message });
     }
 })
 
@@ -448,12 +453,14 @@ app.get("/validate", async (req, res) => {
         if (req.headers.authorization) {
             const user = await getCurrentUser(req.headers.authorization);
             // @ts-ignore
-            res.send({user, token: getToken(user.id)
+            res.send({
+                // @ts-ignore
+                user, token: getToken(user.id)
             });
         }
-    } catch (error) { 
+    } catch (error) {
         // @ts-ignore
-        res.status(400).send({error: error.message});
+        res.status(400).send({ error: error.message });
     }
 });
 
