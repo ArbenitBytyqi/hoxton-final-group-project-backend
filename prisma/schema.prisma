@@ -33,16 +33,18 @@ model Book {
 }
 
 model Category {
-  id    Int    @id @default(autoincrement())
-  title String
-  book  Book[]
+  id      Int    @id @default(autoincrement())
+  title   String
+  content String
+  book    Book[]
 }
 
 model Author {
-  id       Int    @id @default(autoincrement())
-  fullname String @unique
-  image    String
-  books    Book[]
+  id          Int    @id @default(autoincrement())
+  fullname    String @unique
+  description String
+  image       String
+  books       Book[]
 }
 
 model Review {

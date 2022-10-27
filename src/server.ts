@@ -192,6 +192,7 @@ app.post("/author", async (req, res) => {
     try {
         const authorData = {
             fullname: req.body.fullname,
+            description: req.body.description,
             image: req.body.image
         }
         const findAuthor = await prisma.author.findUnique({ where: { fullname: authorData.fullname } })
