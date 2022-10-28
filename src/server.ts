@@ -448,8 +448,6 @@ app.post("/sign-in", async (req, res) => {
     }
 })
 
-
-
 app.get("/validate", async (req, res) => {
     try {
         if (req.headers.authorization) {
